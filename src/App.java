@@ -27,13 +27,13 @@ public class App {
         }
     }
         
-    public static void main(String[] args){
+    public static void main2(String[] args){
         var scriptParse = new AnimationScriptParser("/home/laur/dev/personal/java-learn/bunica/src/script");
 
         scriptParse.PrintFileContent();
     }
 
-    public static void main2(String[] args){
+    public static void main(String[] args){
         var graph = new Graph() {{
             setNode(1, 5);
             setNode(2, 25);

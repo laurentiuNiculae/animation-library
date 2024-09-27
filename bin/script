@@ -1,0 +1,10 @@
+Seq {
+    start (100, 100)
+    end (300, 300)
+    DrawLine(start, end, animationTime = 2)
+    Sync {
+        animationTime = 2
+        RotatePoints(end (center, angle, animationTime))
+        DrawLine(start, end, animationTime)
+    }
+}

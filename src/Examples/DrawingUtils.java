@@ -1,4 +1,7 @@
+package Examples;
 import com.raylib.java.core.Color;
+
+import Graph.Node;
 
 public class DrawingUtils {
     static Color GetNodeColor(Node node) {

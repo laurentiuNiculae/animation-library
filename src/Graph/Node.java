@@ -1,6 +1,7 @@
+package Graph;
 public class Node {
-    int Id;
-    int Value;
+    public int Id;
+    public int Value;
 
     public Node(int id, int value) {
         Id = id;

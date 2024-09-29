@@ -1,7 +1,8 @@
+package Graph;
 public class Edge {
-    Node To;
-    Node From;
-    float Cost;
+    public Node To;
+    public Node From;
+    public float Cost;
 
     public Edge(Node from, Node to) {
         To = to;

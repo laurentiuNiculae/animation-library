@@ -1,27 +1,20 @@
 package Examples;
 
-import java.util.HashMap;
-
 import com.raylib.java.core.Color;
 import com.raylib.java.core.input.Keyboard;
-import com.raylib.java.raymath.Raymath;
-import com.raylib.java.raymath.Vector2;
-
 import Animation.AnimationContext;
-import Animation.DrawNode;
-import Animation.PersistentSecvential;
-import Animation.Syncronous;
+import Animation.AnimationRenderer;
+import Animation.EmptyTask;
 import Animation.Task;
 import Graph.Graph;
 
-public class Example2 {
-        static int Width = 800;
+public class Example5 {
+    static int Width = 800;
     static int Height = 600;
 
     Graph graph;
 
-    public Example2() {
-
+    public Example5() {
         graph = new Graph() {
             {
                 setNode(1, 5);
@@ -40,60 +33,28 @@ public class Example2 {
     }
 
     private Task GetAnimation(AnimationContext ctx) {
-        int nodeWidth = 20;
-        var centerPoint = new Vector2(Width / 2, Height / 2);
-        int radius = Height / 3;
-
-        float angle = 0;
-        float deltaAngle = 2 * Raymath.PI / graph.nodeCount();
-        var startPoint = new Vector2(radius, 0);
-        var nodePositions = new HashMap<Integer, Vector2>();
-        
-        var animation = new Syncronous(ctx);
-
-        var drawNodes = new Syncronous();
-        for (var node : graph.Nodes()) {
-            var rotationOffset = Raymath.Vector2Rotate(startPoint, angle);
-            var point = new Vector2(rotationOffset.x + centerPoint.x, rotationOffset.y + centerPoint.y);
-            nodePositions.put(node.Id, point);
-            drawNodes.addTask(new DrawNode(point, nodeWidth, DrawingUtils.GetNodeColor(node)));
-
-            angle += deltaAngle;
-        }
-
-        var drawLinesSync = new PersistentSecvential();
-
-        for (var edge : graph.Edges()) {
-            var drawLine = new Animation.DrawLine(
-            nodePositions.get(edge.From.Id),
-            nodePositions.get(edge.To.Id),
-            (float) 0.7
-            ).setEasingFunction(Example2::easeOutBounce);
-            
-            drawLinesSync.addTask(drawLine);
-        }
-
-        animation.addTask(drawLinesSync);
-        animation.addTask(drawNodes);
-
-        return animation;
+        return new EmptyTask();
     }
 
     public void RunExample() {
         var ctx = new AnimationContext(Width, Height, 60);
         var animation = GetAnimation(ctx);
-        var background = new Color(18, 18, 18, 255);
+        var animationRenderer = new AnimationRenderer(ctx, animation);
+        // var background = new Color(18, 18, 18, 255);
+        var background = Color.RED;
         
-        ctx.core.InitWindow(800, 600, "Raylib-J Example");
+        ctx.core.InitWindow(Width, Height, "Raylib-J Example");
         ctx.core.SetTargetFPS(60);
         
         boolean canStart = false;
+
+        int frameCount = 0;
 
         while (!ctx.core.WindowShouldClose()) {
             ctx.core.BeginDrawing();
             ctx.core.ClearBackground(background);
             
-            float dt = ctx.core.GetFrameTime();
+            // float dt = ctx.core.GetFrameTime();
             
             if (ctx.core.IsKeyDown(Keyboard.KEY_E)) {
                 canStart = true;
@@ -102,7 +63,24 @@ public class Example2 {
             }
 
             if (canStart) {
-                animation.Draw(dt);
+                try {
+                    animation.Draw((float)1/ctx.getFPS());
+                    animationRenderer.RenderFrameToFile((float)1/ctx.getFPS());
+                    System.out.println(frameCount);
+                    frameCount++;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (animationRenderer.Finished()) {
+                try {
+                    animationRenderer.EndRenderFrameToFile();
+                    System.out.println("Ending");
+                    return;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             ctx.core.EndDrawing();

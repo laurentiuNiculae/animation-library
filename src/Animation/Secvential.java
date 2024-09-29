@@ -4,14 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Secvential implements Task {
+    AnimationContext ctx;
     List<Task> tasks;
     int currentTaskIndex = 0;
+    
+    public Secvential(AnimationContext ctx) {
+        this();
+        this.ctx = ctx;
+    }
     
     public Secvential() {
         tasks = new ArrayList<>();
     }
 
     public Secvential addTask(Task task) {
+        task.SetAnimationCtx(ctx);
         tasks.add(task);
 
         return this;
@@ -30,13 +37,12 @@ public class Secvential implements Task {
         }
 
         var task = tasks.get(currentTaskIndex);
-        
-        if (task.Finished()) {
-            currentTaskIndex++;
-            return;
-        }
 
         task.Draw(dt);
+
+        if (task.Finished()) {
+            currentTaskIndex++;
+        }
     }
 
     @Override
@@ -50,5 +56,11 @@ public class Secvential implements Task {
         for (var task : tasks) {
             task.Reset();
         }
+    }
+
+    @Override
+    public void SetAnimationCtx(AnimationContext ctx) {
+        this.ctx = ctx;
+        tasks.forEach(t -> t.SetAnimationCtx(ctx));
     };
 }

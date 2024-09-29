@@ -1,18 +1,21 @@
 package Animation;
 
-import com.raylib.java.Raylib;
 import com.raylib.java.core.Color;
 import com.raylib.java.raymath.Vector2;
 
 public class DrawNode implements Task {
-    Raylib raylib;
+    AnimationContext ctx;
     Color color;
     Vector2 center;
     float radius;
     boolean finished = false;
 
-    public DrawNode(Raylib rlj, Vector2 center, float radius, Color color) {
-        this.raylib = rlj;
+    public DrawNode(AnimationContext ctx, Vector2 center, float radius, Color color) {
+        this(center, radius, color);
+        this.ctx = ctx;
+    }
+    
+    public DrawNode(Vector2 center, float radius, Color color) {
         this.color = color;
         this.center = center;
         this.radius = radius;
@@ -20,7 +23,7 @@ public class DrawNode implements Task {
 
     @Override
     public void Draw(float dt) {
-        raylib.shapes.DrawCircleV(center, radius, color);
+        ctx.shapes.DrawCircleV(center, radius, color);
         finished = true;
     }
 
@@ -33,6 +36,11 @@ public class DrawNode implements Task {
     public void Reset() {
         finished = false;
         return;
+    }
+
+    @Override
+    public void SetAnimationCtx(AnimationContext ctx) {
+        this.ctx = ctx;
     }
 
 

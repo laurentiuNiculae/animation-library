@@ -1,12 +1,11 @@
 package Animation;
 
-import com.raylib.java.Raylib;
 import com.raylib.java.core.Color;
 import com.raylib.java.raymath.Raymath;
 import com.raylib.java.raymath.Vector2;
 
 public class DrawLine implements Task {
-    Raylib raylib;
+    AnimationContext ctx;
     Vector2 start;
     Vector2 end;
     Vector2 lerpEnd;
@@ -15,8 +14,12 @@ public class DrawLine implements Task {
     float progress;
     EasingFunction easing;
 
-    public DrawLine(Raylib rlj, Vector2 start, Vector2 end, float animationTime) {
-        this.raylib = rlj;
+    public DrawLine(AnimationContext ctx, Vector2 start, Vector2 end, float animationTime) {
+        this(start, end, animationTime);
+        this.ctx = ctx;
+    }
+    
+    public DrawLine(Vector2 start, Vector2 end, float animationTime) {
         this.start = start;
         this.lerpEnd = end;
         this.end = end;
@@ -64,7 +67,7 @@ public class DrawLine implements Task {
         progress = easing.apply(timeElapsed/animationTime);
         lerpEnd = Raymath.Vector2Lerp(start, end, progress);
 
-        raylib.shapes.DrawLineV(start, lerpEnd, Color.RAYWHITE);
+        ctx.shapes.DrawLineV(start, lerpEnd, Color.RAYWHITE);
     }
 
     @Override
@@ -77,5 +80,10 @@ public class DrawLine implements Task {
         lerpEnd = end;
         timeElapsed = 0;
         progress = 0;
+    }
+
+    @Override
+    public void SetAnimationCtx(AnimationContext ctx) {
+        this.ctx = ctx;
     }
 }

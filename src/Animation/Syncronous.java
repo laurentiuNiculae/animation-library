@@ -4,8 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Syncronous implements Task {
+    AnimationContext ctx;
     List<Task> tasks;
     boolean allTasksDone;
+
+    public Syncronous(AnimationContext ctx) {
+        this();
+        this.ctx = ctx;
+    }
 
     public Syncronous() {
         tasks = new ArrayList<>();
@@ -13,6 +19,7 @@ public class Syncronous implements Task {
     }
 
     public Syncronous addTask(Task task) {
+        task.SetAnimationCtx(ctx);
         tasks.add(task);
 
         return this;
@@ -38,5 +45,11 @@ public class Syncronous implements Task {
         for (var task : tasks) {
             task.Reset();
         }
+    }
+
+    @Override
+    public void SetAnimationCtx(AnimationContext ctx) {
+        this.ctx = ctx;
+        tasks.forEach(t -> t.SetAnimationCtx(ctx));
     };
 }

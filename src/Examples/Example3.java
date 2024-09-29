@@ -6,21 +6,23 @@ import com.raylib.java.core.Color;
 import com.raylib.java.core.input.Keyboard;
 import com.raylib.java.raymath.Raymath;
 import com.raylib.java.raymath.Vector2;
+import com.raylib.java.shapes.Rectangle;
 
 import Animation.AnimationContext;
+import Animation.AnimationRenderer;
 import Animation.DrawNode;
 import Animation.PersistentSecvential;
 import Animation.Syncronous;
 import Animation.Task;
 import Graph.Graph;
 
-public class Example2 {
-        static int Width = 800;
+public class Example3 {
+    static int Width = 800;
     static int Height = 600;
 
     Graph graph;
 
-    public Example2() {
+    public Example3() {
 
         graph = new Graph() {
             {
@@ -82,6 +84,7 @@ public class Example2 {
     public void RunExample() {
         var ctx = new AnimationContext(Width, Height, 60);
         var animation = GetAnimation(ctx);
+        var animationRendered = new AnimationRenderer(ctx, animation);
         var background = new Color(18, 18, 18, 255);
         
         ctx.core.InitWindow(800, 600, "Raylib-J Example");
@@ -102,7 +105,9 @@ public class Example2 {
             }
 
             if (canStart) {
-                animation.Draw(dt);
+                var texture = animationRendered.RenderFrameToTexture(dt).texture;
+                var rect = new Rectangle(0, 0, texture.width, -texture.height);
+                ctx.textures.DrawTextureRec(texture, rect, new Vector2(0, 0), Color.WHITE);
             }
 
             ctx.core.EndDrawing();

@@ -2,12 +2,12 @@ package Examples;
 
 import java.util.HashMap;
 
-import com.raylib.java.Raylib;
 import com.raylib.java.core.Color;
 import com.raylib.java.core.input.Keyboard;
 import com.raylib.java.raymath.Raymath;
 import com.raylib.java.raymath.Vector2;
 
+import Animation.AnimationContext;
 import Graph.Graph;
 
 public class Example1 {
@@ -36,9 +36,9 @@ public class Example1 {
     }
     
     public void RunExample() {
-        Raylib rlj = new Raylib();
+        var ctx = new AnimationContext(Width, Height, 60);
 
-        rlj.core.InitWindow(800, 600, "Raylib-J Example");
+        ctx.core.InitWindow(ctx.getWidth(), ctx.getHeight(), "Raylib-J Example");
         int nodeWidth = 20;
         var centerPoint = new Vector2(Width / 2, Height / 2);
         int radius = Height / 3;
@@ -60,21 +60,22 @@ public class Example1 {
         boolean canStart = false;
         float timeElapsed = 0;
 
-        var lineRenderTask = new Animation.DrawLine(rlj,
+        var lineRenderTask = new Animation.DrawLine(
                 new Vector2(100, 100),
                 new Vector2(300, 300),
                 2).setEasingFunction(Example1::easeOutBounce);
+        lineRenderTask.SetAnimationCtx(ctx);
 
-        rlj.core.SetTargetFPS(60);
+        ctx.core.SetTargetFPS(60);
 
-        while (!rlj.core.WindowShouldClose()) {
-            rlj.core.BeginDrawing();
-            rlj.core.ClearBackground(background);
+        while (!ctx.core.WindowShouldClose()) {
+            ctx.core.BeginDrawing();
+            ctx.core.ClearBackground(background);
 
-            float dt = rlj.core.GetFrameTime();
+            float dt = ctx.core.GetFrameTime();
             timeElapsed += dt;
 
-            if (rlj.core.IsKeyDown(Keyboard.KEY_E)) {
+            if (ctx.core.IsKeyDown(Keyboard.KEY_E)) {
                 canStart = true;
                 lineRenderTask.Reset();
                 timeElapsed = 0;
@@ -84,7 +85,7 @@ public class Example1 {
                 lineRenderTask.Draw(dt);
 
                 for (var edge : graph.Edges()) {
-                    var drawLine = new Animation.DrawLine(rlj,
+                    var drawLine = new Animation.DrawLine(ctx,
                         nodePositions.get(edge.From.Id),
                         nodePositions.get(edge.To.Id),
                         2
@@ -97,11 +98,11 @@ public class Example1 {
 
                 for (var node : graph.Nodes()) {
                     var color = DrawingUtils.GetNodeColor(node);
-                    rlj.shapes.DrawCircleV(nodePositions.get(node.Id), nodeWidth, color);
+                    ctx.shapes.DrawCircleV(nodePositions.get(node.Id), nodeWidth, color);
                 }
             }
 
-            rlj.core.EndDrawing();
+            ctx.core.EndDrawing();
         }
     }
 

@@ -4,7 +4,6 @@ import com.raylib.java.Raylib;
 
 public class AnimationContext extends Raylib {
     int width, height, fps;
-    
 
     public AnimationContext(int width, int height, int fps) {
         super();
@@ -13,11 +12,11 @@ public class AnimationContext extends Raylib {
         this.fps = fps;
     }
 
-    public int getwidth() {
+    public int getWidth() {
         return width;
     }
 
-    public int getheight() {
+    public int getHeight() {
         return height;
     }
 

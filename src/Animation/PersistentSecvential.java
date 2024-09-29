@@ -4,14 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PersistentSecvential implements Task {
+    AnimationContext ctx;
     List<Task> tasks;
     int currentTaskIndex = 0;
     
+    public PersistentSecvential(AnimationContext ctx) {
+        this();
+        this.ctx = ctx;
+    }
+
     public PersistentSecvential() {
         tasks = new ArrayList<>();
     }
 
     public PersistentSecvential addTask(Task task) {
+        task.SetAnimationCtx(ctx);
         tasks.add(task);
 
         return this;
@@ -35,12 +42,11 @@ public class PersistentSecvential implements Task {
 
         var task = tasks.get(currentTaskIndex);
         
+        task.Draw(dt);
+
         if (task.Finished()) {
             currentTaskIndex++;
-            return;
         }
-
-        task.Draw(dt);
     }
 
     @Override
@@ -54,5 +60,11 @@ public class PersistentSecvential implements Task {
         for (var task : tasks) {
             task.Reset();
         }
+    }
+
+    @Override
+    public void SetAnimationCtx(AnimationContext ctx) {
+        this.ctx = ctx;
+        tasks.forEach(t -> t.SetAnimationCtx(ctx));
     };
 }

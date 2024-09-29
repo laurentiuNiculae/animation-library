@@ -1,29 +1,47 @@
 package Animation;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import com.raylib.java.core.Color;
+import com.raylib.java.raymath.Vector2;
+import com.raylib.java.shapes.Rectangle;
+import com.raylib.java.textures.RenderTexture;
 
 public class AnimationRenderer implements Task {
+    AnimationContext ctx;
+    RenderTexture renderTarget;
     Task task;
-    int width;
-    int height;
-    int fps;
 
     public AnimationRenderer(Task task, int width, int height, int fps) {
         this.task = task;
-        this.width = width;
-        this.height = height;
-        this.fps = fps;
+        this.ctx = new AnimationContext(width, height, fps);
+    }
+
+    public AnimationRenderer(AnimationContext ctx, Task task) {
+        this.task = task;
+        this.ctx = ctx;
+
+        task.SetAnimationCtx(ctx);
+    }
+
+    public RenderTexture RenderFrameToTexture(float dt) {
+        if (renderTarget == null) {
+            this.renderTarget = ctx.textures.LoadRenderTexture(ctx.getWidth(), ctx.getHeight());
+        }
+
+        ctx.core.BeginTextureMode(renderTarget);
+            ctx.core.ClearBackground(new Color(18, 18, 18, 255));
+            task.Draw(dt);
+        ctx.core.EndTextureMode();
+
+        return renderTarget;
     }
 
     Process process;
     String createProcessError;
     private void createRenderProcess() throws IOException  {
+        // String resolution = "800x600";
         String resolution = "800x600";
-        String framerate = "60";
+        String framerate = "10";
 
         var processB = new ProcessBuilder("ffmpeg", 
             "-loglevel", "verbose",
@@ -46,31 +64,41 @@ public class AnimationRenderer implements Task {
         this.process = processB.start();
     }
 
-    public void RenderToFile(String filePath) throws IOException, InterruptedException {
-        createRenderProcess();
-
-        while (!task.Finished()) {
-
-            task.Draw((float)1/fps);
-
+    public void RenderFrameToFile(float dt) throws IOException, InterruptedException {
+        if (process == null) {
+            createRenderProcess();
         }
 
-        char[] x = {0, 1, 2, 3, 4, 5};
-
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
-        writer.write(x);
-        writer.newLine();
-        writer.flush();
-        writer.close();
-
-        // Read the output from the Go program's stdout
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            System.out.println(line);
+        if (renderTarget == null) {
+            this.renderTarget = ctx.textures.LoadRenderTexture(ctx.getWidth(), ctx.getHeight());
         }
 
+        ctx.core.BeginTextureMode(renderTarget);
+            ctx.core.ClearBackground(new Color(18, 18, 18, 255));
+            task.Draw(dt);
+        ctx.core.EndTextureMode();
+
+        var rec = new Rectangle(0, 0, renderTarget.texture.width, -renderTarget.texture.height);
+        ctx.textures.DrawTextureRec(renderTarget.texture, rec, new Vector2(0, 0), Color.RAYWHITE);
+
+
+        var img = ctx.textures.LoadImageFromTexture(renderTarget.texture);
+        ctx.textures.ImageFlipVertical(img);
+        var imgBytes = img.getData();
+        System.out.printf("imgBytes.length: %d\n", imgBytes.length);
+
+        process.getOutputStream().write(imgBytes);
+        process.getOutputStream().write(imgBytes);
+        process.getOutputStream().write(imgBytes);
+        process.getOutputStream().write(imgBytes);
+        process.getOutputStream().write(imgBytes);
+        process.getOutputStream().flush();
+    }
+    
+    public void EndRenderFrameToFile() throws IOException, InterruptedException {
+        process.outputWriter().close();
         process.waitFor();
+        System.out.println("Closed FFMPEG stdin");
     }
 
     @Override
@@ -86,5 +114,11 @@ public class AnimationRenderer implements Task {
     @Override
     public void Reset() {
         task.Reset();
+    }
+
+    @Override
+    public void SetAnimationCtx(AnimationContext ctx) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'SetAnimationCtx'");
     }
 }

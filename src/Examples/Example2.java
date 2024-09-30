@@ -56,7 +56,7 @@ public class Example2 {
             var rotationOffset = Raymath.Vector2Rotate(startPoint, angle);
             var point = new Vector2(rotationOffset.x + centerPoint.x, rotationOffset.y + centerPoint.y);
             nodePositions.put(node.Id, point);
-            drawNodes.addTask(new DrawNode(point, nodeWidth, DrawingUtils.GetNodeColor(node)));
+            drawNodes.addTask(new DrawNode(point, nodeWidth, DrawingUtils.GetNodeColor(node), 0));
 
             angle += deltaAngle;
         }

@@ -3,37 +3,91 @@ package Animation;
 import com.raylib.java.core.Color;
 import com.raylib.java.raymath.Vector2;
 
+import Animation.Lerp.LerpVec1;
+
 public class DrawNode implements Task {
     AnimationContext ctx;
+
     Color color;
     Vector2 center;
-    float radius;
+    LerpVec1 radius;
+
+    float animationTime;
+    float timeElapsed;
+    float progress;
     boolean finished = false;
 
-    public DrawNode(AnimationContext ctx, Vector2 center, float radius, Color color) {
-        this(center, radius, color);
+    public DrawNode(AnimationContext ctx, Vector2 center, float radius, Color color, float animationTime) {
+        this(center, radius, color, animationTime);
         this.ctx = ctx;
     }
     
-    public DrawNode(Vector2 center, float radius, Color color) {
+    public DrawNode(Vector2 center, float radius, Color color, float animationTime) {
         this.color = color;
         this.center = center;
-        this.radius = radius;
+        this.animationTime = animationTime;
+        this.radius = new LerpVec1(radius, radius);
+    }
+
+    public DrawNode setCenter(Vector2 center) {
+        this.center.x = center.x;
+        this.center.y = center.y;
+        
+        return this;
+    }
+
+    public Vector2 getCenter() {
+        return center;
+    }
+
+    public DrawNode radius(float from, float to) {
+        this.radius = new LerpVec1(from, to);
+        return this;
+    }
+
+    public DrawNode radius(float from, float to, EasingFunction f) {
+        this.radius = new LerpVec1(from, to, f);
+        return this;
     }
 
     @Override
-    public void Draw(float dt) {
-        ctx.shapes.DrawCircleV(center, radius, color);
-        finished = true;
+    public float Draw(float dt) {
+        var drawTime = (float) 0.0;
+        if (timeElapsed + dt >= animationTime) {
+            drawTime = animationTime - timeElapsed;
+            timeElapsed = animationTime;
+            this.setProgress(1);
+        } else {
+            drawTime = dt;
+            timeElapsed += dt;
+            this.setProgress(timeElapsed/animationTime);
+        }
+
+        ctx.shapes.DrawCircleV(center, radius.lerpEnd, color);
+        return drawTime;
+    }
+
+    public DrawNode setProgress(float progress) {
+        if (progress > 1) {
+            progress = 1;
+        }
+
+        this.timeElapsed = this.animationTime * progress;
+        this.progress = progress;
+        this.radius.setProgress(progress);
+        return this;
     }
 
     @Override
     public boolean Finished() {
-        return finished;
+        return timeElapsed + 1e-06 >= animationTime;
     }
 
     @Override
     public void Reset() {
+        progress = 0;
+        timeElapsed = 0;
+        radius.lerpEnd = radius.end;
         finished = false;
         return;
     }
@@ -42,6 +96,4 @@ public class DrawNode implements Task {
     public void SetAnimationCtx(AnimationContext ctx) {
         this.ctx = ctx;
     }
-
-
 }

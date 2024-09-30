@@ -25,28 +25,43 @@ public class PersistentSecvential implements Task {
     }
 
     @Override
-    public void Draw(float dt) {
+    public float Draw(float dt) {
         if (tasks.size() == 0) {
-            return;
+            return 0;
         }
 
-        for (int i = 0; i < currentTaskIndex; i++) {
+        for (int i = 0; i < Math.min(currentTaskIndex, tasks.size()); i++) {
             tasks.get(i).Draw(dt);
         }
 
-        // We'll keep drawing the last frame if the Draw function is called after finish
         if (currentTaskIndex >= tasks.size()) {
-            tasks.get(currentTaskIndex-1).Draw(dt);
-            return;
+            return 0;
         }
 
         var task = tasks.get(currentTaskIndex);
         
-        task.Draw(dt);
+        float drawTime = task.Draw(dt);
+        float totalDrawTime = drawTime;
+
+        while ((dt - drawTime > 1e-06)) {
+            dt = dt - drawTime;
+
+            currentTaskIndex++;
+
+            if (currentTaskIndex >= tasks.size()) {
+                break;
+            }
+
+            task = tasks.get(currentTaskIndex);
+            drawTime = task.Draw(dt);
+            totalDrawTime += drawTime;
+        }
 
         if (task.Finished()) {
             currentTaskIndex++;
         }
+
+        return totalDrawTime;
     }
 
     @Override

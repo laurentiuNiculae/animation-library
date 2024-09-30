@@ -4,9 +4,9 @@ public class EmptyTask implements Task {
     boolean finished = false;
 
     @Override
-    public void Draw(float dt) {
+    public float Draw(float dt) {
         finished = true;
-        return;
+        return 0;
     }
 
     @Override

@@ -26,12 +26,17 @@ public class Syncronous implements Task {
     }
 
     @Override
-    public void Draw(float dt) {
+    public float Draw(float dt) {
         allTasksDone = true;
+        float maxDrawTime = 0;
         for (var task : tasks) {
-            task.Draw(dt);
+            float drawTime = task.Draw(dt);
+            maxDrawTime = Math.max(maxDrawTime, drawTime);
+
             allTasksDone = allTasksDone && task.Finished();
         }
+
+        return maxDrawTime;
     }
 
     @Override

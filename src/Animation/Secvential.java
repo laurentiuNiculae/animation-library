@@ -25,24 +25,41 @@ public class Secvential implements Task {
     }
 
     @Override
-    public void Draw(float dt) {
+    public float Draw(float dt) {
         if (tasks.size() == 0) {
-            return;
+            return 0;
         }
 
         // We'll keep drawing the last frame if the Draw function is called after finish
         if (currentTaskIndex >= tasks.size()) {
             tasks.get(currentTaskIndex-1).Draw(dt);
-            return;
+            return 0;
         }
 
         var task = tasks.get(currentTaskIndex);
-
-        task.Draw(dt);
+        
+        float drawTime = task.Draw(dt);
+        float totalDrawTime = drawTime;
 
         if (task.Finished()) {
             currentTaskIndex++;
         }
+
+        while ((dt - drawTime > 1e06)) {
+            dt = dt - drawTime;
+
+            currentTaskIndex++;
+
+            if (currentTaskIndex >= tasks.size()) {
+                break;
+            }
+
+            task = tasks.get(currentTaskIndex);
+            drawTime = task.Draw(dt);
+            totalDrawTime += drawTime;
+        }
+
+        return totalDrawTime;
     }
 
     @Override

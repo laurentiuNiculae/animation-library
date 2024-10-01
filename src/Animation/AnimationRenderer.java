@@ -2,10 +2,7 @@ package Animation;
 
 import com.raylib.java.core.Color;
 import com.raylib.java.core.input.Keyboard;
-import com.raylib.java.raymath.Vector2;
-import com.raylib.java.shapes.Rectangle;
 import com.raylib.java.textures.RenderTexture;
-import com.raylib.java.textures.Texture2D;
 
 import Encoding.FFmpegEncoder;
 import Encoding.VideoEncoder;
@@ -105,10 +102,10 @@ public class AnimationRenderer {
         task.Reset();
     }
 
-    private void renderTextureToScreen(Texture2D texture) {
-        var rec = new Rectangle(0, 0, renderTarget.texture.width, -renderTarget.texture.height);
-        ctx.textures.DrawTextureRec(renderTarget.texture, rec, new Vector2(0, 0), Color.RAYWHITE);
-    }
+    // private void renderTextureToScreen(Texture2D texture) {
+    //     var rec = new Rectangle(0, 0, renderTarget.texture.width, -renderTarget.texture.height);
+    //     ctx.textures.DrawTextureRec(renderTarget.texture, rec, new Vector2(0, 0), Color.RAYWHITE);
+    // }
 
     public void Reset() {
         task.Reset();

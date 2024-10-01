@@ -15,6 +15,7 @@ public class LerpVec2 {
         this.start = start;
         this.lerpEnd = end;
         this.end = end;
+        this.easingFunc = x -> x;
     }
 
     public LerpVec2(Vector2 start, Vector2 end, EasingFunction easingFunc) {

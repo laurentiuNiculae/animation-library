@@ -1,6 +1,5 @@
 package Examples;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.raylib.java.core.Color;
@@ -53,6 +52,7 @@ public class Example4 {
 
         var mainAnimation = new Syncronous(ctx);
             var drawNodes = new Syncronous();
+            var drawNodesInstant = new Syncronous();
 
             for (var node : graph.Nodes()) {
                 var rotationOffset = Raymath.Vector2Rotate(startPoint, angle);
@@ -63,16 +63,19 @@ public class Example4 {
                     new DrawNode(point, nodeWidth, DrawingUtils.GetNodeColor(node), 1)
                         .radius(1, nodeWidth, Example4::easeOutBounce)
                 );
+                drawNodesInstant.addTask(
+                    new DrawNode(point, nodeWidth, DrawingUtils.GetNodeColor(node), 0)
+                );
 
                 angle += deltaAngle;
             }
 
-            var drawLinesSync = new Syncronous();
+            var drawLinesSync = new PersistentSecvential();
 
             for (var edge : graph.Edges()) {
                 var drawLine = new DrawLine(
-                    nodePositions.get(edge.From.Id), nodePositions.get(edge.To.Id), (float) 1
-                ).setEasingFunction(Example2::easeOutBounce)
+                    nodePositions.get(edge.From.Id), nodePositions.get(edge.To.Id), (float) 0.25
+                ).setEasingFunction(Example4::easeOut)
                  .setLineWidth(10, 2, Example4::easeOutBounce);
                 
                 drawLinesSync.addTask(drawLine);
@@ -86,8 +89,13 @@ public class Example4 {
             ).setEasingFunc(Example4::easeOut);
 
         mainAnimation.addTask(backgroundColor);
-        mainAnimation.addTask(drawLinesSync);
-        mainAnimation.addTask(drawNodes);
+        mainAnimation.addTask(new PersistentSecvential(){{
+            addTask(drawNodes);
+            addTask(new Syncronous() {{
+                addTask(drawLinesSync);
+                addTask(drawNodesInstant);
+            }});
+        }});
 
         var waitWrapper = new Secvential(ctx) {{
             addTask(new DrawBackground(Color.BLACK, Color.DARKBLUE, 0.75f));
@@ -108,10 +116,10 @@ public class Example4 {
         var animation = GetAnimation(ctx);
         var animationRenderer = new AnimationRenderer(ctx, animation);
 
-        // animationRenderer.DisplayAnimation();
+        animationRenderer.DisplayAnimation();
 
-        var outputFile = "./output.mp4";
-        animationRenderer.RenderAnimationToFile(outputFile);
+        // var outputFile = "./output.mp4";
+        // animationRenderer.RenderAnimationToFile(outputFile);
     }
 
     static public float easeOutBounce(float x) {

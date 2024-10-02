@@ -6,14 +6,18 @@ import AnimationParser.AnimationScriptParser;
 
 public class Example5 {
     public void RunExample() {
-        var x = new AnimationScriptParser("./test.txt");
+        var x = new AnimationScriptParser("./animationScript.txt");
 
-        var ctx = new AnimationContext(800, 600, 60);
-        var animation = x.ParseFile();
-        animation.SetAnimationCtx(ctx);
+        var ctx = new AnimationContext(600, 600, 60);
+        var animationResult = x.ParseFile();
+        if (!animationResult.Ok()) {
+            System.out.println(animationResult.Err().getMessage());
+            return;
+        }
 
-        var animationRenderer = new AnimationRenderer(ctx, animation);
+        var animationRenderer = new AnimationRenderer(ctx, animationResult.Some());
 
-        animationRenderer.DisplayAnimation();
+        // animationRenderer.DisplayAnimation();
+        animationRenderer.RenderAnimationToFile("./nice-drawing.mp4");
     }
 }

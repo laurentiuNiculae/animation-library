@@ -1,116 +1,130 @@
 package AnimationParser;
 
 import Animation.*;
+import Helper.Result;
+
 import java.util.List;
+import java.util.Map;
 
 import com.raylib.java.core.Color;
 import com.raylib.java.raymath.Vector2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Parser {
-    public Task ParseTask(String text) {
-        var tokens = new Tokenizer().GetTokens(text);
+    String filePath;
+    Map<String, Vector2> globalVec2;
+    Map<String, Float> globalFloat;
 
-        var x = ParseSyncBlock(tokens);
+    public Result<Task> ParseTask(String filePath, String text) {
+        this.filePath = filePath;
+        globalVec2 = new HashMap<>();
+        globalFloat = new HashMap<>();
 
-        return x.task;
+        var tokenizer = new Tokenizer(filePath, text);
+        var result = tokenizer.InitTokenizer();
+         
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
+
+        var x = ParseSyncBlock(tokenizer);
+        if (!x.Ok()) {
+            return new Result<>(x.Err());
+        }
+
+        var animationWithBackground = new Syncronous();
+        animationWithBackground.addTask(new DrawBackground(Color.BLACK, Color.DARKGRAY, 1));
+        animationWithBackground.addTask(x.Some());
+
+        return new Result<>(animationWithBackground);
     }
 
-    public ParsedTask ParseSyncBlock(List<Token> tokens) throws Error {
-        if (tokens.size() == 0) {
-            return new ParsedTask(new EmptyTask(), 0);
+    public Result<Task> ParseSyncBlock(Tokenizer tokenizer) {
+        if (!tokenizer.Peek().Ok()) {
+            return new Result<>(new EmptyTask());
+        }
+        var keyWord = tokenizer.Pop().Some();
+
+        if (keyWord.Kind != TokenKind.SyncronizationWord) {
+            return new Result<>(new Error(
+                formatExpectedToken("Syncronization word like 'Syncronous', 'Secvential' or 'Persistent'", "", keyWord)  
+            ));
         }
 
-        var firstToken = tokens.get(0);
-
-        if (firstToken.Kind != TokenKind.SyncronizationWord) {
-            throw new Error(
-                    String.format(
-                            "Expected a Syncronization word like 'Syncronous', 'Secvential' or 'Persistent' but got '%s' at line %d col: %d",
-                            firstToken.Content, firstToken.Line, firstToken.Column));
+        var result = ParseSyncBlockContent(tokenizer);
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
         }
 
-        if (tokens.size() == 1) {
-            throw new Error(
-                    String.format(
-                            "Expected a Open Curly Paren '{' at line %s col: %s", firstToken.Line,
-                            firstToken.Column + firstToken.Content.length()));
-        }
-
-        var token = tokens.get(1);
-
-        if (token.Kind != TokenKind.OpenCurlyParen) {
-            throw new Error(
-                    String.format(
-                            "Expected a Open Curly Paren '{' at line %s col: %s",
-                            token.Line, token.Column));
-        }
-
-        if (tokens.size() == 2) {
-            throw new Error(
-                    String.format(
-                            "Expected a Close Curly Paren '}' at line %s col: %s",
-                            token.Line, token.Column + 1));
-        }
-
-        tokens = tokens.subList(2, tokens.size());
-
-        var content = ParseSyncBlockContent(tokens);
-        int totalTokensParsed = content.stream().map(t -> t.parsedTokens).reduce(0, (t, u) -> t + u);
+        var contentList = result.Some();
 
         Task task = new EmptyTask();
 
-        switch (firstToken.Content) {
+        switch (keyWord.Content) {
             case KeyWords.Syncronous:
                 var sync = new Syncronous();
-                content.forEach(t -> sync.addTask(t.task));
+                contentList.forEach(t -> sync.addTask(t));
                 task = sync;
                 break;
             case KeyWords.Secvential:
-                var secv = new Syncronous();
-                content.forEach(t -> secv.addTask(t.task));
+                var secv = new Secvential();
+                contentList.forEach(t -> secv.addTask(t));
                 task = secv;
                 break;
             case KeyWords.Persistent:
-                var pers = new Syncronous();
-                content.forEach(t -> pers.addTask(t.task));
+                var pers = new PersistentSecvential();
+                contentList.forEach(t -> pers.addTask(t));
                 task = pers;
                 break;
             default:
-                throw new Error(String.format("Unexpected result '%s'", token.Content));
+                throw new Error(String.format("Unexpected result '%s'", keyWord.Content));
         }
 
-        var finalA = new Syncronous();
-        finalA.addTask(new DrawBackground(Color.BLACK, Color.DARKGRAY, 1));
-        finalA.addTask(task);
-
-        return new ParsedTask(finalA, totalTokensParsed + 2);
+        return new Result<>(task);
     }
 
-    public List<ParsedTask> ParseSyncBlockContent(List<Token> tokens) {
-        var tasks = new ArrayList<ParsedTask>();
+    public Result<List<Task>> ParseSyncBlockContent(Tokenizer tokenizer) {
+        var tasks = new ArrayList<Task>();
+
+        var result = tokenizer.Pop();
+        if (!result.Ok()) {
+            return new Result<>(new Error(
+                formatEndOfFile(TokenKind.OpenCurlyParen.toString(), "{", tokenizer.PeekBack())
+            ));
+        }
+
+        if (result.Some().Kind != TokenKind.OpenCurlyParen) {
+            return new Result<>(new Error(
+                formatExpectedToken(TokenKind.OpenCurlyParen.toString(), "{", result.Some())
+            ));
+        }
 
         loop:
-        while (tokens.size() > 0) {
-            var token = tokens.get(0);
-            var fix = tokens;
-            tokens = tokens.subList(1, tokens.size());
+        while (tokenizer.Peek().Ok()) {
+            result = tokenizer.Peek();
+            if (!result.Ok()) return new Result<>(new Error(
+                formatEndOfFile(TokenKind.ClosedCurlyParen.toString(), "}", tokenizer.PeekBack())
+            ));
+
+            var token = result.Some();
 
             switch (token.Kind) {
                 case ClosedCurlyParen:
                     var task = new EmptyTask();
-                    tasks.add(new ParsedTask(task, 1));
-                    return tasks;
+                    tasks.add(task);
+                    tokenizer.Pop();
+                    return new Result<>(tasks);
                 case Ident:
                     switch (token.Content) {
                         case DrawingPrimitives.DrawLine:
-                            if (tokens.size() == 0 ) throw new Error(String.format("Expected Open Paren '(' at line %s col: %s", token.Line, token.Column));
-                            if (tokens.get(0).Kind != TokenKind.OpenParen) throw new Error(String.format("Expected Open Paren '(' at line %s col: %s", token.Line, token.Column));
-
-                            var drawLine = ParseDrawLineParams(token, tokens.subList(1, tokens.size()));
-                            tasks.add(drawLine);
-                            tokens = tokens.subList(drawLine.parsedTokens, tokens.size());
+                            tokenizer.Pop();
+                            var drawLine = ParseDrawLineParams(tokenizer);
+                            if (!drawLine.Ok()) {
+                                return new Result<>(drawLine.Err());
+                            }
+                            tasks.add(drawLine.Some());
                             continue loop;
                         // case DrawingPrimitives.DrawNode:
                         //     if (tokens.size() == 0 ) throw new Error(String.format("Expected Open Paren '(' at line %s col: %s", token.Line, token.Column));
@@ -121,106 +135,214 @@ public class Parser {
                         //     tokens = tokens.subList(drawNode.parsedTokens, tokens.size());
                         //     continue loop;
                         default:
-                            throw new Error(
-                                String.format(
-                                    "Unknown identifier '%s' at line %s col: %s",
-                                        token.Content, token.Line, token.Column));
+                            var newIdent = tokenizer.Pop().Some();
+                            
+                            var equalResult = PopTokenKind(tokenizer, TokenKind.Equal, "=");
+                            if (!equalResult.Ok()) {
+                                if (equalResult.Err().getMessage().contains("EndOfFile")) {
+                                    return new Result<>(new Error(
+                                        formatEndOfFile("", "", newIdent)
+                                    ));    
+                                }
+
+                                return new Result<>(new Error(
+                                    String.format("Stray indent '%s'", newIdent.Content, 
+                                        formatFileLocation(newIdent.Line, newIdent.Column))
+                                ));
+                            }
+
+                            var vec2Result = ParseVec2(tokenizer);
+                            if (!vec2Result.Ok()) {
+                                return new Result<>(new Error(vec2Result.Err()));
+                            }
+
+                            globalVec2.put(newIdent.Content, vec2Result.Some());
+                            continue loop;
                     }
                 case SyncronizationWord:
-                    var syncBlock = ParseSyncBlock(fix);
-                    tasks.add(syncBlock);
-                    tokens = tokens.subList(syncBlock.parsedTokens, tokens.size());
+                    var syncBlockResult = ParseSyncBlock(tokenizer);
+                    if (!syncBlockResult.Ok()) {
+                        return new Result<>(syncBlockResult.Err());
+                    }
+
+                    tasks.add(syncBlockResult.Some());
                     continue loop;
                 default:
-                    throw new Error(
-                        String.format(
-                            "Unknown token '%s' of type '%s' at line %s col: %s",
-                                token.Content, token.Kind.toString(), token.Line, token.Column));
+                    throw new Error(String.format(
+                            "Unknown token '%s' of type '%s' at %s",
+                                token.Content, token.Kind.toString(), formatFileLocation(token.Line, token.Column)));
             }
         }
 
-        return tasks;
+        return new Result<>(tasks);
     }
 
     // private ParsedTask ParseDrawNodeParams(List<Token> tokens) {
     //     // if (tokens.get(0))
     // }
 
-    private ParsedTask ParseDrawLineParams(Token lastToken, List<Token> tokens) {
-        if (tokens.size() == 0 ) throw new Error(String.format("Unexpected end of file. Expected a vec2 like '(1, 2)' at line %s col: %s", lastToken.Line, lastToken.Column));
+    private Result<Task> ParseDrawLineParams(Tokenizer tokenizer) {
+        var result = PopTokenKind(tokenizer, TokenKind.OpenParen, "(");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
 
-        var start = ParseVec2(tokens);
-        tokens = tokens.subList(start.parsedTokens, tokens.size());
-        if (tokens.size() == 0) throw new Error(String.format("Unexpected end of file. Expected a comma ',' at line %s col: %s", lastToken.Line, lastToken.Column + start.parsedTokens));
+        var start = new Vector2();
 
-        lastToken = tokens.get(0);
-        if (lastToken.Kind != TokenKind.Comma) throw new Error(String.format("Expected a comma ',' but got '%s' at line %s col: %s", lastToken.Line, lastToken.Column, lastToken.Content));
+        var token = tokenizer.Peek();
+        if (!token.Ok()) {
+            return new Result<>(new Error("Failed to parse vec2: " + token.Err().getMessage()));
+        }
+
+        switch (token.Some().Kind) {
+            case TokenKind.Ident:
+                if (!globalVec2.containsKey(token.Some().Content)) {
+                    return new Result<>(new Error(
+                        formatUnknownIdentifier(token.Some())
+                    ));
+                }
+
+                start = globalVec2.get(token.Some().Content);
+                tokenizer.Pop();
+                break;
+            case TokenKind.OpenParen:
+                var vec2Result = ParseVec2(tokenizer);
+                if (!vec2Result.Ok()) {
+                    return new Result<>(new Error("Failed to parse vec2: " + vec2Result.Err().getMessage()));
+                }
+
+                start = vec2Result.Some();
+                break;
+            default:
+                return new Result<>(new Error("Failed to parse vec2: wrong type, expected vec2 at " + formatFileLocation(token.Some().Line, token.Some().Column)));
+        }
         
-        tokens = tokens.subList(1, tokens.size());
+        result = PopTokenKind(tokenizer, TokenKind.Comma, ",");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
+
+        var end = new Vector2();
+
+        token = tokenizer.Peek();
+        if (!token.Ok()) {
+            return new Result<>(new Error("Failed to parse vec2: " + token.Err().getMessage()));
+        }
+
+        switch (token.Some().Kind) {
+            case TokenKind.Ident:
+                if (!globalVec2.containsKey(token.Some().Content)) {
+                    return new Result<>(new Error(
+                        formatUnknownIdentifier(token.Some())
+                    ));
+                }
+
+                end = globalVec2.get(token.Some().Content);
+                tokenizer.Pop();
+                break;
+            case TokenKind.OpenParen:
+                var vec2Result = ParseVec2(tokenizer);
+                if (!vec2Result.Ok()) {
+                    return new Result<>(new Error("Failed to parse vec2: " + vec2Result.Err().getMessage()));
+                }
+
+                end = vec2Result.Some();
+                break;
+            default:
+            return new Result<>(new Error("Failed to parse vec2: wrong type, expected vec2 at " + formatFileLocation(token.Some().Line, token.Some().Column)));
+        }
+
+        result = PopTokenKind(tokenizer, TokenKind.Comma, ",");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
         
-        var end = ParseVec2(tokens);
-        tokens = tokens.subList(end.parsedTokens, tokens.size());
-        if (tokens.size() == 0) throw new Error(String.format("Unexpected end of file. Expected a comma ',' at line %s col: %s", lastToken.Line, lastToken.Column + start.parsedTokens));
+        result = PopTokenKind(tokenizer, TokenKind.Number, "69");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
 
-        lastToken = tokens.get(0);
-        if (lastToken.Kind != TokenKind.Comma) throw new Error(String.format("Expected a comma ',' but got '%s' at line %s col: %s", lastToken.Line, lastToken.Column, lastToken.Content));
+        var animationTime = Float.parseFloat(result.Some().Content);
+
+        result = PopTokenKind(tokenizer, TokenKind.ClosedParen, ")");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
+
+        var drawLine = new DrawLine(start, end, animationTime); 
         
-        tokens = tokens.subList(1, tokens.size());
-        if (tokens.size() == 0) throw new Error(String.format("Unexpected end of file. Expected a comma ')' at line %s col: %s", lastToken.Line, lastToken.Column + start.parsedTokens));
-
-        lastToken = tokens.get(0);
-        if (lastToken.Kind != TokenKind.Number) throw new Error(String.format("Expected a comma ')' at line %s col: %s", lastToken.Line, lastToken.Column + start.parsedTokens));
-        
-        float animationTime = Float.parseFloat(lastToken.Content);
-
-        tokens = tokens.subList(1, tokens.size());
-        if (tokens.size() == 0) throw new Error(String.format("Unexpected end of file. Expected a close paren ')' at line %s col: %s", lastToken.Line, lastToken.Column + start.parsedTokens));
-
-        lastToken = tokens.get(0);
-        if (lastToken.Kind != TokenKind.ClosedParen) throw new Error(String.format("Expected a closed paren ')' at line %s col: %s", lastToken.Line, lastToken.Column + start.parsedTokens));
-
-        return new ParsedTask(new DrawLine(start.vec2, end.vec2, animationTime), 1 + start.parsedTokens + 1 + end.parsedTokens + 1 + 1 + 1);
+        return new Result<>(drawLine);
     }
 
-    private ParsedVec2 ParseVec2(List<Token> tokens) {
-        int totalTokensParsed = 0;
+    private Result<Vector2> ParseVec2(Tokenizer tokenizer) {
+        var result = PopTokenKind(tokenizer, TokenKind.OpenParen, "(");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
 
-        var token = tokens.get(0);
+        result = PopTokenKind(tokenizer, TokenKind.Number, "69");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
 
-        if (token.Kind != TokenKind.OpenParen)  throw new Error(String.format("Expected open paren but got '%s' at line %s col: %s", token.Line, token.Column, token.Content));
-        
-        tokens = tokens.subList(1, tokens.size());
-        totalTokensParsed++;
-        token = tokens.get(0);
-        if (token.Kind != TokenKind.Number) throw new Error(String.format("Expected number like '69' but got '%s' at line %s col: %s", token.Line, token.Column, token.Content));
+        var x = Float.parseFloat(result.Some().Content);
 
-        float x = Float.parseFloat(token.Content);
-        
-        tokens = tokens.subList(1, tokens.size());
-        if (tokens.size() == 0 ) throw new Error(String.format("Unexpected end of file. Expected a comma ',' at line %s col: %s", token.Line, token.Column));
-        totalTokensParsed++;
+        result = PopTokenKind(tokenizer, TokenKind.Comma, ",");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
 
-        token = tokens.get(0);
-        if (token.Kind != TokenKind.Comma) throw new Error(String.format("Expected a comma ',' but got '%s' at line %s col: %s", token.Line, token.Column, token.Content));
+        result = PopTokenKind(tokenizer, TokenKind.Number, "69");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
 
-        tokens = tokens.subList(1, tokens.size());
-        if (tokens.size() == 0 ) throw new Error(String.format("Unexpected end of file. Expected a vec2 like '(1, 2)' at line %s col: %s", token.Line, token.Column));
-        totalTokensParsed++;
+        var y = Float.parseFloat(result.Some().Content);
 
-        token = tokens.get(0);
-        if (token.Kind != TokenKind.Number) throw new Error(String.format("Expected number like '69' but got '%s' at line %s col: %s", token.Line, token.Column, token.Content));
-        float y = Float.parseFloat(token.Content);
+        result = PopTokenKind(tokenizer, TokenKind.ClosedParen, ")");
+        if (!result.Ok()) {
+            return new Result<>(result.Err());
+        }
 
-        tokens = tokens.subList(1, tokens.size());
-        if (tokens.size() == 0 ) throw new Error(String.format("Unexpected end of file. Expected Close Paren ')' at line %s col: %s", token.Line, token.Column));
-        totalTokensParsed++;
+        return new Result<>(new Vector2(x, y));
+    }
 
-        token = tokens.get(0);
-        if (token.Kind != TokenKind.ClosedParen) throw new Error(String.format("Expected Close Paren ')' but got '%s' at line %s col: %s", token.Line, token.Column, token.Content));
+    private Result<Token> PopTokenKind(Tokenizer tokenizer, TokenKind expectedKind, String example) {
+        if (!tokenizer.Peek().Ok()) return new Result<>(new Error(
+            formatEndOfFile(expectedKind.toString(), example, tokenizer.PeekBack())
+        ));
 
-        // for the close paren
-        totalTokensParsed++;
+        var result = tokenizer.Pop();
 
-        return new ParsedVec2(new Vector2(x, y), totalTokensParsed);
+        if (result.Some().Kind != expectedKind) return new Result<>(new Error(
+            formatExpectedToken(expectedKind.toString(), example, result.Some())
+        ));
+
+        return new Result<>(result.Some());
+    }
+
+    private String formatExpectedToken(String expectedSymbolName, String expectedSymbol, Token token) {
+        String butGot = token.Content;
+        int line = token.Line;
+        int col = token.Column;
+        return String.format("Expected %s '%s' but got '%s' at line %s:%d:%d", expectedSymbolName, expectedSymbol, butGot, filePath, line, col);
+    }
+    
+    private String formatUnknownIdentifier(Token token) {
+        String butGot = token.Content;
+        int line = token.Line;
+        int col = token.Column;
+        return String.format("Unknown identifier'%s' at line %s:%d:%d", butGot, filePath, line, col);
+    }
+
+    private String formatEndOfFile(String expectedSymbolName, String expectedSymbol, Token lastToken) {
+        String butGot = lastToken.Content;
+        int line = lastToken.Line;
+        int col = lastToken.Column + lastToken.Content.length();
+        return String.format("Unexpected EndOfFile: Expected %s '%s' at line %s:%d:%d", expectedSymbolName, expectedSymbol, butGot, filePath, line, col);
+    }
+
+    private String formatFileLocation(int line, int col) {
+        return String.format("%s:%d:%d", filePath, line, col);
     }
 }

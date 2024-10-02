@@ -9,5 +9,7 @@ public enum TokenKind {
     Number,
     Tag,
     Comma,
-    SyncronizationWord
+    SyncronizationWord,
+    Equal,
+    NoToken,
 }

@@ -1,7 +1,0 @@
-Secvential {
-    DrawLine((34, 35), (69, 420), 2)
-    Syncronous {
-        DrawLine((420, 69), (420, 69), 0)
-        DrawLine((11, 11), (22, 22), 0)
-    }
-}

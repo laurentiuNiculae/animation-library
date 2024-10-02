@@ -8,8 +8,8 @@ public class Token {
 
     public Token(String Content, int Line, int Column, TokenKind Kind) {
         this.Content = Content;
-        this.Line = Line;
-        this.Column = Column;
+        this.Line = Line+1;
+        this.Column = Column+1;
         this.Kind = Kind;
     }
 

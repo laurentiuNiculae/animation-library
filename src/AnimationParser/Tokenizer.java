@@ -4,8 +4,64 @@ import java.util.List;
 import java.util.ArrayList;
 import java.lang.Error;
 
+import Helper.Result;
+import Helper.Result.Empty;
+
 public class Tokenizer {
-    public List<Token> GetTokens(String text) throws Error {
+    String filepath;
+    String text;
+    
+    List<Token> tokens;
+    int index = 0;
+
+    public Tokenizer(String filepath, String text) {
+        this.filepath = filepath;
+        this.text = text;
+    }
+
+    public Result<Empty> InitTokenizer() {
+        var tokensResult = GetTokens(filepath, text);
+        if (!tokensResult.Ok()) {
+            return new Result<>(tokensResult.Err());
+        }
+
+        this.tokens = tokensResult.Some();
+
+        return Result.None;
+    }
+
+    public Result<Token> Peek() {
+        if (index >= tokens.size()) {
+            return new Result<>(new Error("NoMoreTokens"));
+        }
+
+        return new Result<>(tokens.get(index));
+    }
+
+    public Result<Token> Pop() {
+        if (index >= tokens.size()) {
+            return new Result<>(new Error("NoMoreTokens"));
+        }
+
+        var rez = new Result<>(tokens.get(index));
+        index++;
+
+        return rez;
+    }
+
+    public Token PeekBack() {
+        if (tokens.size() == 0) {
+            return new Token("", 0, 0, TokenKind.NoToken);
+        }
+
+        if (index == 0) {
+            return tokens.get(0);
+        }
+
+        return tokens.get(index-1);
+    }
+
+    public Result<List<Token>> GetTokens(String filepath, String text) {
         var tokens = new ArrayList<Token>();
         int line = 0;
         int column = 0;
@@ -48,6 +104,10 @@ public class Tokenizer {
                     tokens.add(new Token(",", line, column, TokenKind.Comma));
                     i++; column++;
                     continue loop;
+                case '=':
+                    tokens.add(new Token("=", line, column, TokenKind.Equal));
+                    i++; column++;
+                    continue loop;
                 case '#':
                     i++; column++;
                     j++;
@@ -71,7 +131,9 @@ public class Tokenizer {
                 }
 
                 if (j < text.length() && Character.isAlphabetic(text.charAt(j))) {
-                    throw new Error(String.format("Lexer error at line: %s column: %s. Can't have identifier start with numbers", line, column));
+                    return new Result<>(
+                        new Error(String.format("Lexer error at line: %s column: %s. Can't have identifier start with numbers", line, column))
+                    );
                 }
 
                 var number = text.substring(i, j);
@@ -108,10 +170,11 @@ public class Tokenizer {
                 continue;
             }
 
-            throw new Error(String.format("Lexer error at line: %s column: %s. unexpected character '%c'", line, column, text.charAt(j)));
+            return new Result<>(
+                new Error(String.format("Lexer error at %s:%d:%d. unexpected character '%c'", filepath, line+1, column+1, text.charAt(j)))
+            );
         }
 
-        return tokens;
+        return new Result<>(tokens);
     }
-
 }

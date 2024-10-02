@@ -5,14 +5,15 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 
 import Animation.Task;
-
-import java.util.List;
+import Helper.Result;
 
 public class AnimationScriptParser {
     String fileContent;
+    String filePath;
 
     public AnimationScriptParser(String filePath) {
         try {
+            this.filePath = filePath;
             var file = new File(filePath);
             var scanner = new Scanner(file);
 
@@ -25,18 +26,13 @@ public class AnimationScriptParser {
         }
     }
 
-    public Task ParseFile() {
-        var tokens = GetTokens();
+    public Result<Task> ParseFile() {
+        var task = new Parser().ParseTask(filePath, fileContent);
 
-        var w = new Parser().ParseSyncBlock(tokens);
-        return w.task;
+        return task;
     }
 
     public void PrintFileContent() {
         System.out.println("fileContent: " + fileContent);
-    }
-
-    public List<Token> GetTokens() {
-        return new Tokenizer().GetTokens(fileContent);
     }
 }

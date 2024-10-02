@@ -1,18 +1,16 @@
-## Getting Started
+## Simple Animation Script
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+This project aims to offer a simple language for creating simple, stylized and fun animations.
 
-## Folder Structure
+## How it works
 
-The workspace contains two folders by default, where:
+I have tested the project only on Linux for now using Java-23
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+The principle is based on using the "Syncronization Types":
+ - Syncronous: Do all actions at the same time
+ - Secvential: Do actions secventially and discard on finish
+ - Persistent: Do actions secventially and keep the state on finish
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+Mixed with the drawing primitives like DrawLine you can create interesting patterns
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
-
-## Dependency Management
-
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+https://github.com/user-attachments/assets/844f3989-1fdd-4697-804a-55434dd09045

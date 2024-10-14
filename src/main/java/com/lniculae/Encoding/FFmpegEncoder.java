@@ -39,6 +39,7 @@ public class FFmpegEncoder implements VideoEncoder {
             "-c:a", "aac",
             "-ab", "200k",
             "-pix_fmt", "yuv420p",
+            "-f", "mp4",
             path
         );
 

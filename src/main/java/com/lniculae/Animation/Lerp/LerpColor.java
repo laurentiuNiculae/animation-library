@@ -1,6 +1,5 @@
 package com.lniculae.Animation.Lerp;
 
-import com.raylib.java.raymath.Raymath;
 import com.lniculae.Animation.Color;
 import com.lniculae.Animation.EasingFunction;
 
@@ -31,10 +30,14 @@ public class LerpColor {
 
         progress = this.easingFunc.apply(progress);
         
-        lerpEnd.r = (int) Raymath.Lerp(start.r, end.r, progress); ;
-        lerpEnd.g = (int) Raymath.Lerp(start.g, end.g, progress); ;
-        lerpEnd.b = (int) Raymath.Lerp(start.b, end.b, progress); ;
+        lerpEnd.r = (int) lerp(start.r, end.r, progress); ;
+        lerpEnd.g = (int) lerp(start.g, end.g, progress); ;
+        lerpEnd.b = (int) lerp(start.b, end.b, progress); ;
 
         return lerpEnd;
+    }
+
+    private float lerp(float start, float end, float progress) {
+        return start * progress + end * (1 - progress);
     }
 }

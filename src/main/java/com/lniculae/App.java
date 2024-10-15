@@ -4,7 +4,7 @@ import com.lniculae.Examples.*;
 
 public class App {
     public static void main(String[] args) {
-        new Example3().RunExample();
+        new Example1().RunExample();
     }
 }
 

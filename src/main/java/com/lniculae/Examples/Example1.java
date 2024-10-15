@@ -2,12 +2,10 @@ package com.lniculae.Examples;
 
 import java.util.HashMap;
 
-import com.raylib.java.core.Color;
-import com.raylib.java.core.input.Keyboard;
-import com.raylib.java.raymath.Raymath;
-
 import com.lniculae.Animation.*;
-import com.lniculae.Animation.Context.RaylibAnimationContext;
+import com.lniculae.Animation.Context.AnimationContext;
+import com.lniculae.AnimationOutput.AnimationFileRenderer;
+import com.lniculae.AnimationOutput.JavaAWTRenderer;
 import com.lniculae.Graph.Graph;
 
 public class Example1 {
@@ -17,7 +15,6 @@ public class Example1 {
     Graph graph;
 
     public Example1() {
-
         graph = new Graph() {
             {
                 setNode(1, 5);
@@ -30,80 +27,94 @@ public class Example1 {
                 setEdge(1, 3);
                 setEdge(1, 4, 32);
                 setEdge(2, 3);
-                setEdge(4, 1);
+                setEdge(3, 4);
+                setEdge(4, 6);
+                setEdge(4, 5);
+                setEdge(5, 6);
+                setEdge(5, 1);
+                setEdge(4, 2);
+                setEdge(6, 1);
             }
         };
     }
-    
-    public void RunExample() {
-        var ctx = new RaylibAnimationContext(Width, Height, 60);
 
-        ctx.core.InitWindow(ctx.getWidth(), ctx.getHeight(), "Raylib-J Example");
-        int nodeWidth = 20;
+    private Task GetAnimation(AnimationContext ctx) {
         var centerPoint = new Vec2(Width / 2, Height / 2);
         int radius = Height / 3;
-
-        var background = new Color(18, 18, 18, 255);
-
         float angle = 0;
-        float deltaAngle = 2 * Raymath.PI / graph.nodeCount();
+        float deltaAngle = 2 * 3.1415f / graph.nodeCount();
         var startPoint = new Vec2(radius, 0);
+        
+        int nodeWidth = 20;
         var nodePositions = new HashMap<Integer, Vec2>();
 
-        for (var node : graph.Nodes()) {
-            var point = Vec2.Rotate(startPoint, angle);
-            nodePositions.put(node.Id, new Vec2(point.x + centerPoint.x, point.y + centerPoint.y));
+        var mainAnimation = new Syncronous(ctx);
+            var drawNodes = new Syncronous();
+            var drawNodesInstant = new Syncronous();
 
-            angle += deltaAngle;
-        }
+            for (var node : graph.Nodes()) {
+                var rotationOffset = Vec2.Rotate(startPoint, angle);
+                var point = new Vec2(rotationOffset.x + centerPoint.x, rotationOffset.y + centerPoint.y);
+                nodePositions.put(node.Id, point);
 
-        boolean canStart = false;
-        float timeElapsed = 0;
+                drawNodes.addTask(
+                    new DrawNode(point, nodeWidth, DrawingUtils.GetNodeColor(node), 1)
+                        .radius(1, nodeWidth, Example1::easeOutBounce)
+                );
+                drawNodesInstant.addTask(
+                    new DrawNode(point, nodeWidth, DrawingUtils.GetNodeColor(node), 0)
+                );
 
-        var lineRenderTask = new DrawLine(
-                new Vec2(100, 100),
-                new Vec2(300, 300),
-                2).setEasingFunction(Example1::easeOutBounce);
-        lineRenderTask.SetAnimationCtx(ctx);
-
-        ctx.core.SetTargetFPS(60);
-
-        while (!ctx.core.WindowShouldClose()) {
-            ctx.core.BeginDrawing();
-            ctx.core.ClearBackground(background);
-
-            float dt = ctx.core.GetFrameTime();
-            timeElapsed += dt;
-
-            if (ctx.core.IsKeyDown(Keyboard.KEY_E)) {
-                canStart = true;
-                lineRenderTask.Reset();
-                timeElapsed = 0;
+                angle += deltaAngle;
             }
 
-            if (canStart) {
-                lineRenderTask.Draw(dt);
+            var drawLinesSync = new PersistentSecvential();
 
-                for (var edge : graph.Edges()) {
-                    var drawLine = new DrawLine(ctx,
-                        nodePositions.get(edge.From.Id),
-                        nodePositions.get(edge.To.Id),
-                        2
-                        );
-                    
-                    drawLine.setEasingFunction(Example1::easeOutBounce)
-                    .setTimeElapsed(timeElapsed)
-                    .Draw(0);
-                }
-
-                for (var node : graph.Nodes()) {
-                    var color = DrawingUtils.GetNodeColor(node);
-                    ctx.drawCircle(nodePositions.get(node.Id), nodeWidth, color);
-                }
+            for (var edge : graph.Edges()) {
+                var drawLine = new DrawLine(
+                    nodePositions.get(edge.From.Id), nodePositions.get(edge.To.Id), (float) 0.25
+                ).setEasingFunction(Example1::easeOut)
+                 .setLineWidth(10, 2, Example1::easeOutBounce);
+                
+                drawLinesSync.addTask(drawLine);
             }
+            drawLinesSync.addTask(new EmptyTask());
 
-            ctx.core.EndDrawing();
-        }
+            var backgroundColor = new DrawBackground(
+                Color.DARKBLUE,
+                Color.BLUE,
+                1
+            ).setEasingFunc(Example1::easeOut);
+
+        mainAnimation.addTask(backgroundColor);
+        mainAnimation.addTask(new PersistentSecvential(){{
+            addTask(drawNodes);
+            addTask(new Syncronous() {{
+                addTask(drawLinesSync);
+                addTask(drawNodesInstant);
+            }});
+        }});
+
+        var waitWrapper = new Secvential(ctx) {{
+            addTask(new DrawBackground(Color.BLACK, Color.DARKBLUE, 0.75f));
+            addTask(new DrawWait(0.5f));
+            addTask(new PersistentSecvential(){{
+                addTask(mainAnimation);
+                addTask(new DrawBackground(Color.BLUE, Color.DARKBLUE, 0.75f));
+                addTask(new DrawBackground(Color.DARKBLUE, Color.BLACK, 0.75f));
+                addTask(new DrawWait(0.5f));
+            }});
+        }};
+
+        return waitWrapper;
+    }
+
+    public void RunExample() {
+        var animation = GetAnimation(null);
+        AnimationFileRenderer renderer = new JavaAWTRenderer(animation, Width, Height, 60);
+
+        var outputFile = "./output2.mp4";
+        renderer.renderToFile(outputFile);
     }
 
     static public float easeOutBounce(float x) {
@@ -119,5 +130,9 @@ public class Example1 {
         } else {
             return (float) (n1 * (x -= 2.625 / d1) * x + 0.984375);
         }
+    }
+
+    static public float easeOut(float x) {
+        return x == 1 ? 1 : 1 - (float) Math.pow(2, -10 * x);
     }
 }

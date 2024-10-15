@@ -1,7 +1,6 @@
 package com.lniculae.Animation;
 
 import com.lniculae.Animation.Context.AnimationContext;
-import com.lniculae.Animation.Context.RaylibAnimationContext;
 import com.lniculae.Animation.Lerp.LerpVec1;
 
 public class DrawNode implements Task {
@@ -16,7 +15,7 @@ public class DrawNode implements Task {
     float progress;
     boolean finished = false;
 
-    public DrawNode(RaylibAnimationContext ctx, Vec2 center, float radius, Color color, float animationTime) {
+    public DrawNode(AnimationContext ctx, Vec2 center, float radius, Color color, float animationTime) {
         this(center, radius, color, animationTime);
         this.ctx = ctx;
     }

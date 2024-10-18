@@ -38,6 +38,6 @@ public class LerpColor {
     }
 
     private float lerp(float start, float end, float progress) {
-        return start * progress + end * (1 - progress);
+        return start * (1 - progress) + end * progress;
     }
 }

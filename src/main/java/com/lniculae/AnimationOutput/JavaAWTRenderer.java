@@ -27,7 +27,6 @@ public class JavaAWTRenderer implements AnimationFileRenderer {
         }
 
         float dt = (float)1/ctx.getFPS();
-        int i = 0;
 
         while (!task.Finished()) {
             ctx.drawTaskToImage(task, dt);
@@ -36,9 +35,6 @@ public class JavaAWTRenderer implements AnimationFileRenderer {
             if (!result.Ok()) {
                 return result;
             }
-
-            System.out.println(i);
-            i++;
         }
 
         result = videoEncoder.finalizeRendering();

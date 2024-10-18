@@ -64,27 +64,30 @@ public class FFmpegEncoder implements VideoEncoder {
             process.outputWriter().close();
 
             // Handle the output and error streams
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            //     String line;
+            //     while ((line = reader.readLine()) != null) {
+            //         System.out.println(line);
+            //     }
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
 
             try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                StringBuilder builder = new StringBuilder();
+
                 String line;
                 while ((line = errorReader.readLine()) != null) {
-                    System.err.println(line);
+                    builder.append(line);
                 }
+
+                System.err.println(builder.toString());
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
             process.waitFor();
             renderProcessStarted = false;        
-            System.out.println("Closed FFMPEG stdin");
         } catch (Exception e) {
             return new Result<>(new Error(e.getMessage()));
         }
@@ -103,21 +106,26 @@ public class FFmpegEncoder implements VideoEncoder {
             process.getOutputStream().write(imgBytes);
             process.getOutputStream().flush();
         } catch (Exception e) {
+
             // Handle the output and error streams
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
+            // try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            //     String line;
+            //     while ((line = reader.readLine()) != null) {
+            //         System.out.println(line);
+            //     }
+            // } catch (IOException ex) {
+            //     ex.printStackTrace();
+            // }
 
             try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                StringBuilder builder = new StringBuilder();
+
                 String line;
                 while ((line = errorReader.readLine()) != null) {
-                    System.err.println(line);
+                    builder.append(line);
                 }
+
+                System.err.println(builder.toString());
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
